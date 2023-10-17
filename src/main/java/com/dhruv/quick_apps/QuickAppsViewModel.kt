@@ -5,7 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.Flow
 import java.lang.Integer.max
 import java.lang.Math.min
 import kotlin.math.cos
@@ -78,6 +80,9 @@ class QuickAppsViewModel(
     }
 
     fun onDragStop(){
+        if(currentAction != null){
+            currentAction!!.onSelect()
+        }
         selectionMode = SelectionMode.NonActive
         currentAlphabet = ""
         currentDistance = 0f
