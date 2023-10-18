@@ -20,7 +20,7 @@ fun QuickAppsVisual(
     modifier: Modifier,
     viewModel: QuickAppsViewModel,
     alphabetSideFloat: Float,
-    appComposable: @Composable (action: Action, modifier: Modifier)->Unit,
+    appComposable: @Composable (action: Action, modifier: Modifier, selected: Boolean)->Unit,
 ){
     val offsets by remember (viewModel.currentAlphabet){
         mutableStateOf(viewModel.IconsOffsetsForAlphabet(viewModel.currentAlphabet)!!)
@@ -67,10 +67,11 @@ fun QuickAppsVisual(
                     val offset = offsets[i]
                     val action = actions[i]
                     appComposable(
-                        modifier = Modifier
+                        action,
+                        Modifier
                             .offset { sidePadding + offset.round() }
                             .scale(appsFolderOpenValue),
-                        action = action
+                        (viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name))
                     )
                 }
             }
