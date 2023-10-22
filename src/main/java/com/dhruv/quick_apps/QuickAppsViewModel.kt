@@ -1,13 +1,12 @@
 package com.dhruv.quick_apps
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.Flow
 import java.lang.Integer.max
 import java.lang.Math.min
 import kotlin.math.cos
@@ -79,9 +78,10 @@ class QuickAppsViewModel(
         }
     }
 
-    fun onDragStop(){
+    fun onDragStop(context: Context){
         if(currentAction != null){
-            currentAction!!.onSelect()
+            currentAction!!.onSelect(context)
+            currentAction = null
         }
         selectionMode = SelectionMode.NonActive
         currentAlphabet = ""

@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.round
 
@@ -32,11 +31,43 @@ fun QuickAppsVisual(
         mutableStateOf(IntOffset(-viewModel.sidePadding.toInt(), 0))
     }
     val appsFolderOpenValue by animateFloatAsState(
-        targetValue = if (viewModel.selectionMode == SelectionMode.AppSelect) 1F else 0F,
+        targetValue = if (viewModel.selectionMode != SelectionMode.NonActive) 1F else 0F,
         label = "appsFolderOpenValue"
     )
     val currentAlphabet = viewModel.currentAlphabet
     val alphabetOffsets = getAnimatedAlphabetOffset(viewModel.AlphabetYOffsets,alphabetSideFloat,currentAlphabet)
+
+    @Composable
+    fun animatedAlphabet(s: String){
+        Box(
+            modifier = Modifier
+                .offset { alphabetOffsets[s]!!.value }
+        ) {
+            Text(text = s)
+        }
+    }
+
+    @Composable
+    fun allAlphabets(){
+        for ((i, yOff) in viewModel.AlphabetYOffsets){
+            animatedAlphabet(s = i)
+        }
+    }
+
+    @Composable
+    fun selectedAlphabetApps(){
+        for (i in actions.indices){
+            val offset = offsets[i]
+            val action = actions[i]
+            appComposable(
+                action,
+                Modifier
+                    .offset { sidePadding + offset.round() }
+                ,
+                (viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name))
+            )
+        }
+    }
 
     Box(
         modifier = modifier
@@ -47,33 +78,12 @@ fun QuickAppsVisual(
 
             }
             SelectionMode.CharSelect -> {
-                for ((i, yOff) in viewModel.AlphabetYOffsets){
-                    Box(
-                        modifier = Modifier
-                            .offset { alphabetOffsets[i]!!.value }
-                    ) {
-                        Text(text = i)
-                    }
-                }
+                allAlphabets()
+                selectedAlphabetApps()
             }
             SelectionMode.AppSelect -> {
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(-alphabetSideFloat.toInt(), viewModel.AlphabetYOffsets[viewModel.currentAlphabet]?.toInt() ?: 0) }
-                ) {
-                    Text(text = viewModel.currentAlphabet)
-                }
-                for (i in actions.indices){
-                    val offset = offsets[i]
-                    val action = actions[i]
-                    appComposable(
-                        action,
-                        Modifier
-                            .offset { sidePadding + offset.round() }
-                            .scale(appsFolderOpenValue),
-                        (viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name))
-                    )
-                }
+                animatedAlphabet(s = viewModel.currentAlphabet)
+                selectedAlphabetApps()
             }
         }
     }

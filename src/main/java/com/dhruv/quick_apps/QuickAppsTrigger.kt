@@ -6,12 +6,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun QuickAppsTrigger(
     modifier: Modifier,
     viewModel: QuickAppsViewModel
 ){
+    val context = LocalContext.current
     Box(
         modifier = modifier
             .onGloballyPositioned {
@@ -27,10 +29,10 @@ fun QuickAppsTrigger(
                         viewModel.onDrag(offset)
                     },
                     onDragEnd = {
-                        viewModel.onDragStop()
+                        viewModel.onDragStop(context)
                     },
                     onDragCancel = {
-                        viewModel.onDragStop()
+                        viewModel.onDragStop(context)
                     }
                 )
             },

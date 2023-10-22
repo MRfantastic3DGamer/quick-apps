@@ -1,5 +1,7 @@
 package com.dhruv.quick_apps
 
-abstract class Action(val name: String, val onSelect: ()->Unit)
+import android.content.Context
 
-class TestAction(@JvmField val Name: String, @JvmField val OnSelect: () -> Unit = { println(Name) }) : Action(Name, OnSelect)
+abstract class Action(val name: String, var onSelect: (Context)->Unit)
+
+class TestAction(@JvmField val Name: String, @JvmField val OnSelect: (Context) -> Unit = { println(Name) }) : Action(Name, OnSelect)
