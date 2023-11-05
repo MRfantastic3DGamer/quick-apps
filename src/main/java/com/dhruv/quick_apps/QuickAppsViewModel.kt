@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.IntOffset
@@ -20,8 +21,8 @@ import kotlin.math.sin
  * @param onAppSelectionChange it can be used to add haptic feedback
  */
 class QuickAppsViewModel(
-    val onAlphabetSelectionChange: (alphabet: String)->Unit,
-    val onAppSelectionChange: (action: Action?)->Unit,
+    val onAlphabetSelectionChange: (alphabet: String, haptic: HapticFeedback)->Unit,
+    val onAppSelectionChange: (action: Action?, haptic: HapticFeedback)->Unit,
     val actionsMap: Map<String, List<Action>>,
     val rowHeight: Double,
     val distanceBetweenIcons: Double,
@@ -82,7 +83,7 @@ class QuickAppsViewModel(
                 else nextAction = allActions[alphabetPositionActionMap[currentAlphabet]!![currentRow]!![currentColumn]!!]
                 if (currentAction != nextAction){
                     currentAction = nextAction
-                    onAppSelectionChange(currentAction)
+                    onAppSelectionChange(currentAction, haptic)
                 }
             }
         }
@@ -113,7 +114,7 @@ class QuickAppsViewModel(
         val currIndex = clamp(index, 0, alphabetIconOffsets.size-1)
         val curr = actionsMap.keys.toList()[currIndex]
         if (curr != currentAlphabet){
-            onAlphabetSelectionChange(curr)
+            onAlphabetSelectionChange(curr, haptic)
         }
         return curr
     }
@@ -267,6 +268,11 @@ class QuickAppsViewModel(
         get() = alphabetMaxAppsRadius[currentAlphabet] ?: 0f
     val getGlobalTouchPosition: Offset
         get() = triggerOffset + touchPosition
+    val getHapticFeedback: HapticFeedback
+        get() = haptic
+    fun setHapticFeedback(h: HapticFeedback){
+        haptic = h
+    }
 
     companion object{
         val toAppSelectX = -10
@@ -283,6 +289,8 @@ class QuickAppsViewModel(
         var alphabetIconOffsets: Map<String,List<Offset>> = mapOf()
         var alphabetMaxAppsRadius: Map<String, Float> = mapOf()
         var alphabetPositionActionMap: Map<String, Map<Int, Map<Int, Int>>> = mapOf()
+
+        lateinit var haptic: HapticFeedback
     }
 
     data class IconCoordinate(val distance: Double, val angle: Double)

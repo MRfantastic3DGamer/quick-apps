@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 
@@ -26,7 +28,7 @@ fun QuickAppsVisual(
     modifier: Modifier,
     viewModel: QuickAppsViewModel,
     alphabetSideFloat: Float,
-    appComposable: @Composable (action: Action, modifier: Modifier, selected: Boolean)->Unit,
+    appComposable: @Composable (action: Action, offset: IntOffset, selected: Boolean)->Unit,
     wordsBGComposable: (@Composable (offset: IntOffset, size: IntSize, selectionHeight: Int)->Unit)?,
     iconsBGComposable: (@Composable (offset: IntOffset, size: IntSize, selectionHeight: Int)->Unit)?,
 ){
@@ -53,7 +55,7 @@ fun QuickAppsVisual(
             modifier = Modifier
                 .offset { alphabetOffsets[s]!!.value }
         ) {
-            Text(text = s, style = TextStyle(color = Color.White))
+            Text(text = s, style = TextStyle(color = Color.White, fontSize = TextUnit(10f, TextUnitType.Sp)))
         }
     }
 
@@ -74,8 +76,7 @@ fun QuickAppsVisual(
                 val action = actions[i]
                 appComposable(
                     action,
-                    Modifier
-                        .offset { baseOffset + Offset(0f, selectedYOffset).round() + offsetChange.round() },
+                    baseOffset + Offset(0f, selectedYOffset).round() + offsetChange.round(),
                     (viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name))
                 )
             }

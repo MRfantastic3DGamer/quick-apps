@@ -7,12 +7,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @Composable
 fun QuickAppsTrigger(
     modifier: Modifier,
     viewModel: QuickAppsViewModel
 ){
+    val haptic = LocalHapticFeedback.current
+    viewModel.setHapticFeedback(haptic)
     val context = LocalContext.current
     Box(
         modifier = modifier
