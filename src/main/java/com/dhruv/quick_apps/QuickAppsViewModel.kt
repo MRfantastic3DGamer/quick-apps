@@ -28,7 +28,8 @@ class QuickAppsViewModel(
     val distanceBetweenIcons: Double,
     val sidePadding: Float,
     val topMinValue: Float = -50F,
-    val leftMinValue: Float = -880F
+    val leftMinValue: Float = -880F,
+    val startingRowHeight: Double = 180.0
 ): ViewModel() {
     var touchPosition by mutableStateOf(Offset.Zero)
     var currentAlphabet by mutableStateOf("")
@@ -71,10 +72,10 @@ class QuickAppsViewModel(
                     selectionMode = SelectionMode.CharSelect
                 }
                 currentAngle = -(calculateAngle(refA, refB, touchPosition) - 270)
-                currentDistance = calculateDistance(refB, touchPosition)
-
-                currentRow = (currentDistance/rowHeight).toInt()
-                val deltaAngle = calculateAngleOnCircle((currentRow+1) * rowHeight, distanceBetweenIcons)
+                currentDistance = calculateDistance(refB, touchPosition) - (startingRowHeight - rowHeight).toFloat()
+                println(currentDistance)
+                currentRow = clamp((currentDistance/rowHeight).toInt(), 0, Int.MAX_VALUE)
+                val deltaAngle = calculateAngleOnCircle(currentRow * rowHeight + startingRowHeight, distanceBetweenIcons)
                 currentColumn = (currentAngle/deltaAngle).toInt()
                 var nextAction: Action? = null
                 if(alphabetPositionActionMap[currentAlphabet] == null) nextAction = null
@@ -245,7 +246,7 @@ class QuickAppsViewModel(
         generateAlphabetYOffsets()
         generateAllActions()
 
-        generateIconCoordinates(startingRadius = rowHeight, radiusDiff = rowHeight, iconDistance = distanceBetweenIcons)
+        generateIconCoordinates(startingRadius = startingRowHeight, radiusDiff = rowHeight, iconDistance = distanceBetweenIcons)
         generateIconMap(bottomMaxValue = triggerSize.height.toFloat() - rowHeight.toFloat(), topMinValue= topMinValue, leftMinValue = leftMinValue)
         generateActionPositions()
 
