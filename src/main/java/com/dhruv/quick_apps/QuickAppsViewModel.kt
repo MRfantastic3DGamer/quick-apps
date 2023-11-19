@@ -13,6 +13,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.round
 import androidx.core.math.MathUtils.clamp
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -24,8 +28,8 @@ class QuickAppsViewModel(
     val onAlphabetSelectionChange: (alphabet: String, haptic: HapticFeedback)->Unit,
     val onAppSelectionChange: (action: Action?, haptic: HapticFeedback)->Unit,
     val actionsMap: Map<String, List<Action>>,
-    val rowHeight: Double,
-    val distanceBetweenIcons: Double,
+    var rowHeight: Double,
+    var distanceBetweenIcons: Double,
     val sidePadding: Float,
     val topMinValue: Float = -50F,
     val leftMinValue: Float = -880F,
@@ -73,7 +77,7 @@ class QuickAppsViewModel(
                 }
                 currentAngle = -(calculateAngle(refA, refB, touchPosition) - 270)
                 currentDistance = calculateDistance(refB, touchPosition) - (startingRowHeight - rowHeight).toFloat()
-                println(currentDistance)
+
                 currentRow = clamp((currentDistance/rowHeight).toInt(), 0, Int.MAX_VALUE)
                 val deltaAngle = calculateAngleOnCircle(currentRow * rowHeight + startingRowHeight, distanceBetweenIcons)
                 currentColumn = (currentAngle/deltaAngle).toInt()
@@ -103,10 +107,14 @@ class QuickAppsViewModel(
         currentColumn = 0
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     fun onTriggerGloballyPositioned(layoutCoordinates: LayoutCoordinates) {
         triggerSize = layoutCoordinates.size
         triggerOffset = layoutCoordinates.positionInRoot()
-        handleIconsPositioningCalculations(leftMinValue = leftMinValue, topMinValue = topMinValue)
+
+        GlobalScope.launch(Dispatchers.IO) {
+            handleIconsPositioningCalculations(leftMinValue = leftMinValue, topMinValue = topMinValue)
+        }
     }
 
     private fun getCurrentAlphabet(position: Float): String {
@@ -131,9 +139,8 @@ class QuickAppsViewModel(
         return Offset(x.toFloat(), y.toFloat())
     }
 
-    private fun handleIconsPositioningCalculations(topMinValue: Float = -50F, leftMinValue: Float = -880F){
-
-        if (coordinateGenerated) return
+    suspend fun handleIconsPositioningCalculations(topMinValue: Float = -50F, leftMinValue: Float = -880F){
+        if(!dirty) return
 
         fun generateAlphabetYOffsets(){
             val map = mutableMapOf<String,Float>()
@@ -250,7 +257,9 @@ class QuickAppsViewModel(
         generateIconMap(bottomMaxValue = triggerSize.height.toFloat() - rowHeight.toFloat(), topMinValue= topMinValue, leftMinValue = leftMinValue)
         generateActionPositions()
 
-        coordinateGenerated = true
+        println("complete : $alphabetIconOffsets")
+
+        dirty = false
     }
 
     val getSelectedStringYOffset: Float
@@ -271,6 +280,11 @@ class QuickAppsViewModel(
         get() = triggerOffset + touchPosition
     val getHapticFeedback: HapticFeedback
         get() = haptic
+
+    fun markDirty(){
+        dirty = true
+    }
+
     fun setHapticFeedback(h: HapticFeedback){
         haptic = h
     }
@@ -281,7 +295,6 @@ class QuickAppsViewModel(
         var triggerSize = IntSize(0,0)
         var triggerOffset = Offset(0f,0f)
 
-        var coordinateGenerated = false
         var alphabetYOffsets: Map<String,Float> = mapOf()
         var allIconCoordinates: List<IconCoordinate> = listOf()
         var indexToRowAndColumn: List<List<Int>> = listOf()
@@ -292,6 +305,8 @@ class QuickAppsViewModel(
         var alphabetPositionActionMap: Map<String, Map<Int, Map<Int, Int>>> = mapOf()
 
         lateinit var haptic: HapticFeedback
+
+        var dirty = true
     }
 
     data class IconCoordinate(val distance: Double, val angle: Double)
