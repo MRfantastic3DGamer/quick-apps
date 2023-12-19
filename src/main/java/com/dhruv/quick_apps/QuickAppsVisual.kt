@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
+import androidx.compose.ui.unit.toOffset
 
 @Composable
 fun QuickAppsVisual(
@@ -32,23 +33,20 @@ fun QuickAppsVisual(
     appComposable: @Composable (action: Action, offset: IntOffset, selected: Boolean) -> Unit,
     wordsBGComposable: @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
     iconsBGComposable: @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
+    triggerClosedBGComposable: @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
 ){
-    val offsetsChange by remember (viewModel.currentAlphabet){
+    val offsetsChange by remember (viewModel.selectedString){
         mutableStateOf(viewModel.getIconsOffsetsChange)
     }
-    val actions by remember (viewModel.currentAlphabet){
+    val actions by remember (viewModel.selectedString){
         mutableStateOf(viewModel.getActionsForAlphabet)
     }
     val baseOffset by remember {
         mutableStateOf(IntOffset(-viewModel.sidePadding.toInt(), -(viewModel.rowHeight/3).toInt()))
     }
     val selectedYOffset by animateFloatAsState(targetValue = viewModel.getSelectedStringYOffset, label = "selected-string-Y-offset")
-    val appsFolderOpenValue by animateFloatAsState(
-        targetValue = if (viewModel.selectionMode == SelectionMode.CharSelect) 1F else 0F,
-        label = "appsFolderOpenValue"
-    )
-    val currentAlphabet = viewModel.currentAlphabet
-    val alphabetOffsets = getAnimatedAlphabetOffset(viewModel.getAlphabetYOffsets,alphabetSideFloat,currentAlphabet, viewModel.getTriggerSize, appsFolderOpenValue)
+    val currentAlphabet = viewModel.selectedString
+    val alphabetOffsets = getAnimatedAlphabetOffset(viewModel.getAlphabetYOffsets,alphabetSideFloat,currentAlphabet, viewModel.getTriggerSize)
 
     @Composable
     fun animatedAlphabet(s: String){
@@ -62,7 +60,7 @@ fun QuickAppsVisual(
 
     @Composable
     fun allAlphabets(){
-        for ((i, yOff) in viewModel.getAlphabetYOffsets){
+        for ((i, _) in viewModel.getAlphabetYOffsets){
             animatedAlphabet(s = i)
         }
     }
@@ -75,10 +73,15 @@ fun QuickAppsVisual(
             for (i in actions.indices){
                 val offsetChange = offsetsChange[i]
                 val action = actions[i]
+                val iconOffset = baseOffset + Offset(0f, selectedYOffset).round() + offsetChange.round()
+                val isSelected = viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name)
+                if(isSelected){
+                    viewModel.currentActionOfset = iconOffset.toOffset()
+                }
                 appComposable(
                     action,
-                    baseOffset + Offset(0f, selectedYOffset).round() + offsetChange.round(),
-                    (viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name))
+                    iconOffset,
+                    isSelected,
                 )
             }
         }
@@ -91,7 +94,17 @@ fun QuickAppsVisual(
     ){
         when (viewModel.selectionMode) {
             SelectionMode.NonActive -> {
-
+//                Box (
+//                    modifier = Modifier
+//                        .offset { -viewModel.getTriggerOffset }
+//                ){
+//                    triggerClosedBGComposable?.invoke(
+//                        viewModel.getTriggerOffset,
+//                        viewModel.getTriggerSize,
+//                        selectedYOffset.toInt()
+//                    )
+//                }
+                allAlphabets()
             }
             SelectionMode.CharSelect -> {
                 Box (
@@ -108,7 +121,7 @@ fun QuickAppsVisual(
                 selectedAlphabetApps()
             }
             SelectionMode.AppSelect -> {
-                animatedAlphabet(s = viewModel.currentAlphabet)
+                animatedAlphabet(s = viewModel.selectedString)
                 Box (
                     modifier = Modifier
                         .offset { -viewModel.getTriggerOffset }
@@ -119,7 +132,7 @@ fun QuickAppsVisual(
                         selectedYOffset.toInt()
                     )
                 }
-
+                allAlphabets()
                 selectedAlphabetApps()
             }
         }
@@ -127,13 +140,13 @@ fun QuickAppsVisual(
 }
 
 @Composable
-fun getAnimatedAlphabetOffset(AlphabetYOffsets: Map<String, Float>, alphabetSideFloat: Float, currentAlphabet: String, triggerSize: IntSize, appsFolderOpenValue: Float): Map<String, State<IntOffset>> {
+fun getAnimatedAlphabetOffset(AlphabetYOffsets: Map<String, Float>, alphabetSideFloat: Float, currentAlphabet: String, triggerSize: IntSize): Map<String, State<IntOffset>> {
     val alphabetOffsets = mutableMapOf<String, State<IntOffset>>()
     for ((alphabet, yOff) in AlphabetYOffsets) {
         alphabetOffsets[alphabet] = animateIntOffsetAsState(
             targetValue =
-                if (alphabet == currentAlphabet) IntOffset(-alphabetSideFloat.toInt(), yOff.toInt() - 25)
-                else IntOffset((triggerSize.width/2 + (1 - appsFolderOpenValue) * 100).toInt(), yOff.toInt()),
+                if (alphabet == currentAlphabet) IntOffset(-alphabetSideFloat.toInt()-15, yOff.toInt() - 25)
+                else IntOffset((triggerSize.width/2), yOff.toInt()),
             label = "animateAlphabetOffset{$alphabet}",
             animationSpec = tween(durationMillis = 50)
         )

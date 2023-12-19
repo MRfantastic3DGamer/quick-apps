@@ -27,7 +27,8 @@ import kotlin.math.sin
 class QuickAppsViewModel(
     val onAlphabetSelectionChange: (alphabet: String, haptic: HapticFeedback)->Unit,
     val onAppSelectionChange: (action: Action?, haptic: HapticFeedback)->Unit,
-    val actionsMap: Map<String, List<Action>>,
+    val firstCharToActionsMap: Map<String, List<Action>>,
+    val groupNameToActionsMap: Map<String, List<Action>>,
     var rowHeight: Double,
     var distanceBetweenIcons: Double,
     val sidePadding: Float,
@@ -35,8 +36,10 @@ class QuickAppsViewModel(
     val leftMinValue: Float = -880F,
     val startingRowHeight: Double = 180.0
 ): ViewModel() {
+    var currentStringToActionsMap by mutableStateOf(mapOf<String, List<Action>>())
+
     var touchPosition by mutableStateOf(Offset.Zero)
-    var currentAlphabet by mutableStateOf("")
+    var selectedString by mutableStateOf("")
 
     private var refA by mutableStateOf(Offset.Zero)
     private var refB by mutableStateOf(Offset.Zero)
@@ -49,6 +52,9 @@ class QuickAppsViewModel(
 
 
     var selectionMode by mutableStateOf(SelectionMode.NonActive)
+
+    var currentActionOfset by mutableStateOf(Offset.Zero)
+
 
     fun onTap(){
 
@@ -64,14 +70,15 @@ class QuickAppsViewModel(
         when (selectionMode) {
             SelectionMode.NonActive -> {}
             SelectionMode.CharSelect -> {
-                if(touchPosition.x < toAppSelectX){
+                if(touchPosition.x < toAppSelectX && change.y > change.x){
                     selectionMode = SelectionMode.AppSelect
-                    refA = Offset( -(sidePadding + 1),alphabetYOffsets[currentAlphabet] as Float)
-                    refB = Offset( -sidePadding,alphabetYOffsets[currentAlphabet] as Float)
+                    refA = Offset( -(sidePadding + 1),alphabetYOffsets[selectedString] as Float)
+                    refB = Offset( -sidePadding,alphabetYOffsets[selectedString] as Float)
                 }
-                currentAlphabet = getCurrentAlphabet(touchPosition.y)
+                selectedString = getCurrentAlphabet(touchPosition.y)
             }
             SelectionMode.AppSelect -> {
+
                 if(touchPosition.x > toCharSelectX){
                     selectionMode = SelectionMode.CharSelect
                 }
@@ -82,10 +89,10 @@ class QuickAppsViewModel(
                 val deltaAngle = calculateAngleOnCircle(currentRow * rowHeight + startingRowHeight, distanceBetweenIcons)
                 currentColumn = (currentAngle/deltaAngle).toInt()
                 var nextAction: Action? = null
-                if(alphabetPositionActionMap[currentAlphabet] == null) nextAction = null
-                else if (alphabetPositionActionMap[currentAlphabet]!![currentRow] == null) nextAction = null
-                else if (alphabetPositionActionMap[currentAlphabet]!![currentRow]!![currentColumn] == null) nextAction = null
-                else nextAction = allActions[alphabetPositionActionMap[currentAlphabet]!![currentRow]!![currentColumn]!!]
+                if(firstAlphabetToActionsPositionMap[selectedString] == null) nextAction = null
+                else if (firstAlphabetToActionsPositionMap[selectedString]!![currentRow] == null) nextAction = null
+                else if (firstAlphabetToActionsPositionMap[selectedString]!![currentRow]!![currentColumn] == null) nextAction = null
+                else nextAction = allActions[firstAlphabetToActionsPositionMap[selectedString]!![currentRow]!![currentColumn]!!]
                 if (currentAction != nextAction){
                     currentAction = nextAction
                     onAppSelectionChange(currentAction, haptic)
@@ -100,7 +107,7 @@ class QuickAppsViewModel(
             currentAction = null
         }
         selectionMode = SelectionMode.NonActive
-        currentAlphabet = ""
+        selectedString = ""
         currentDistance = 0f
         currentAngle    = 0f
         currentRow = 0
@@ -118,16 +125,19 @@ class QuickAppsViewModel(
     }
 
     private fun getCurrentAlphabet(position: Float): String {
-        val delta = triggerSize.height / actionsMap.size
+        val delta = triggerSize.height / currentStringToActionsMap.size
         val index = (position / delta).toInt()
-        val currIndex = clamp(index, 0, alphabetIconOffsets.size-1)
-        val curr = actionsMap.keys.toList()[currIndex]
-        if (curr != currentAlphabet){
+        val currIndex = clamp(index, 0, firstAlphabetToActionsOffsets.size-1)
+        val curr = currentStringToActionsMap.keys.toList()[currIndex]
+        if (curr != selectedString){
             onAlphabetSelectionChange(curr, haptic)
         }
         return curr
     }
 
+    private fun getPositionOnCircle(coordinate: IconCoordinate): Offset {
+        return getPositionOnCircle(coordinate.distance, -coordinate.angle)
+    }
     private fun getPositionOnCircle(radius: Double, angleDegrees: Double): Offset {
         if (radius <= 0.0) {
             throw IllegalArgumentException("Radius must be a positive value")
@@ -144,9 +154,9 @@ class QuickAppsViewModel(
 
         fun generateAlphabetYOffsets(){
             val map = mutableMapOf<String,Float>()
-            val delta = triggerSize.height/actionsMap.size
+            val delta = triggerSize.height/currentStringToActionsMap.size
             var curr = 0F
-            for ((s, _) in actionsMap) {
+            for ((s, _) in currentStringToActionsMap) {
                 map[s] = curr - delta/2
                 curr += delta
             }
@@ -184,7 +194,7 @@ class QuickAppsViewModel(
 
         fun generateAllActions(){
             val actionsL = mutableListOf<Action>()
-            for ((_, actions) in actionsMap) {
+            for ((_, actions) in currentStringToActionsMap) {
                 for (action in actions) {
                     actionsL.add(action)
                 }
@@ -202,7 +212,7 @@ class QuickAppsViewModel(
             val maxRadius = mutableMapOf<String, Float>()
             var c_i: Int
             var action_i = 0
-            for ((s, actions) in actionsMap){
+            for ((s, actions) in currentStringToActionsMap){
                 c_i = 0
                 val origin = alphabetYOffsets[s] as Float
                 val iconsL = mutableListOf<Int>()
@@ -228,26 +238,26 @@ class QuickAppsViewModel(
                     action_i++
                 }
                 iconsM[s] = iconsL
-                maxRadius[s] = allIconCoordinates[iconsL.last()].distance.toFloat()
+                maxRadius[s] = allIconCoordinates[iconsL.last()].distance.toFloat() + rowHeight.toFloat()
             }
-            alphabetIconsMap = iconsM
-            alphabetPositionActionMap = positionToActionIndexMap.toMap()
-            alphabetMaxAppsRadius = maxRadius.toMap()
+            firstAlphabetToActionsIndexes = iconsM
+            firstAlphabetToActionsPositionMap = positionToActionIndexMap.toMap()
+            firstAlphabetToMaxAppsRegionRadius = maxRadius.toMap()
         }
 
         fun generateActionPositions(){
             val list = mutableMapOf<String,List<Offset>>()
 
-            for ((s, icons) in alphabetIconsMap){
+            for ((s, icons) in firstAlphabetToActionsIndexes){
                 val l = mutableListOf<Offset>()
                 for (p in icons){
-                    val cpos = getPositionOnCircle(allIconCoordinates[p].distance, -allIconCoordinates[p].angle)
+                    val cpos = getPositionOnCircle(allIconCoordinates[p])
                     val finalPos = -cpos
                     l.add( finalPos )
                 }
                 list[s] = l.toList()
             }
-            alphabetIconOffsets = list.toMap()
+            firstAlphabetToActionsOffsets = list.toMap()
         }
 
         generateAlphabetYOffsets()
@@ -257,27 +267,42 @@ class QuickAppsViewModel(
         generateIconMap(bottomMaxValue = triggerSize.height.toFloat() - rowHeight.toFloat(), topMinValue= topMinValue, leftMinValue = leftMinValue)
         generateActionPositions()
 
-        println("complete : $alphabetIconOffsets")
+        println("complete : $firstAlphabetToActionsOffsets")
 
         dirty = false
     }
 
     val getSelectedStringYOffset: Float
-        get() = alphabetYOffsets[currentAlphabet] ?: 0f
+        get() = alphabetYOffsets[selectedString] ?: 0f
     val getAlphabetYOffsets: Map<String,Float>
         get() = alphabetYOffsets
     val getIconsOffsetsChange: List<Offset>
-        get() = alphabetIconOffsets[currentAlphabet] ?: listOf()
+        get() = firstAlphabetToActionsOffsets[selectedString] ?: listOf()
     val getActionsForAlphabet : List<Action>
-        get() = actionsMap[currentAlphabet] ?: listOf()
+        get() = currentStringToActionsMap[selectedString] ?: listOf()
     val getTriggerOffset : IntOffset
         get() = triggerOffset.round()
     val getTriggerSize : IntSize
         get() = triggerSize
     val getAlphabetAppsMaxRadius : Float
-        get() = alphabetMaxAppsRadius[currentAlphabet] ?: 0f
+        get() = firstAlphabetToMaxAppsRegionRadius[selectedString] ?: 0f
     val getGlobalTouchPosition: Offset
         get() = triggerOffset + touchPosition
+    fun getGlobalResponsiveBubblePosition(iconSize: Float): Offset {
+        return when (selectionMode) {
+            SelectionMode.NonActive -> {
+                Offset.Zero
+            }
+
+            SelectionMode.CharSelect -> {
+                triggerOffset + Offset(-100f, getSelectedStringYOffset)
+            }
+
+            SelectionMode.AppSelect -> {
+                if (currentAction!=null) (currentActionOfset + triggerOffset + Offset(iconSize, iconSize)) else getGlobalTouchPosition
+            }
+        }
+    }
     val getHapticFeedback: HapticFeedback
         get() = haptic
 
@@ -299,10 +324,14 @@ class QuickAppsViewModel(
         var allIconCoordinates: List<IconCoordinate> = listOf()
         var indexToRowAndColumn: List<List<Int>> = listOf()
         var allActions: List<Action> = listOf()
-        var alphabetIconsMap: Map<String,List<Int>> = mapOf()
-        var alphabetIconOffsets: Map<String,List<Offset>> = mapOf()
-        var alphabetMaxAppsRadius: Map<String, Float> = mapOf()
-        var alphabetPositionActionMap: Map<String, Map<Int, Map<Int, Int>>> = mapOf()
+        var firstAlphabetToActionsIndexes: Map<String,List<Int>> = mapOf()
+        var groupNameToActionsIndexes: Map<String,List<Int>> = mapOf()
+        var firstAlphabetToActionsOffsets: Map<String,List<Offset>> = mapOf()
+        var groupNameToActionsOffsets: Map<String,List<Offset>> = mapOf()
+        var firstAlphabetToMaxAppsRegionRadius: Map<String, Float> = mapOf()
+        var groupNameToMaxAppsRegionRadius: Map<String, Float> = mapOf()
+        var firstAlphabetToActionsPositionMap: Map<String, Map<Int, Map<Int, Int>>> = mapOf()
+        var groupNameToActionsPositionMap: Map<String, Map<Int, Map<Int, Int>>> = mapOf()
 
         lateinit var haptic: HapticFeedback
 
