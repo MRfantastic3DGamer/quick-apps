@@ -28,7 +28,7 @@ class QuickAppsViewModel(
     val onAlphabetSelectionChange: (alphabet: String, haptic: HapticFeedback)->Unit,
     val onAppSelectionChange: (action: Action?, haptic: HapticFeedback)->Unit,
     val firstCharToActionsMap: Map<String, List<Action>>,
-    val groupNameToActionsMap: Map<String, List<Action>>,
+//    val groupNameToActionsMap: Map<String, List<Action>>,
     var rowHeight: Double,
     var distanceBetweenIcons: Double,
     val sidePadding: Float,
