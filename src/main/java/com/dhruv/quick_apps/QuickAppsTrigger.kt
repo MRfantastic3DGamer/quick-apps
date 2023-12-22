@@ -1,6 +1,5 @@
 package com.dhruv.quick_apps
 
-import android.content.Context
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -17,7 +16,7 @@ fun QuickAppsTrigger(
     onTriggerGloballyPositioned: (LayoutCoordinates) -> Unit,
     onDragStart: (Offset) -> Unit,
     onDrag: (Offset) -> Unit,
-    onDragStop: (Context) -> Unit
+    onDragStop: () -> Unit
 ){
     val context = LocalContext.current
     Box(
@@ -35,10 +34,10 @@ fun QuickAppsTrigger(
                         onDrag(offset)
                     },
                     onDragEnd = {
-                        onDragStop(context)
+                        onDragStop()
                     },
                     onDragCancel = {
-                        onDragStop(context)
+                        onDragStop()
                     }
                 )
             },

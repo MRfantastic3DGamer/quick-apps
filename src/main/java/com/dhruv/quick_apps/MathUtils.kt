@@ -2,7 +2,9 @@ package com.dhruv.quick_apps
 
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.acos
+import kotlin.math.cos
 import kotlin.math.pow
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 fun calculateAngle(a: Offset, b: Offset, c: Offset): Float {
@@ -28,4 +30,18 @@ fun calculateAngleOnCircle(radius: Double, distance: Double): Double {
     val angleInRadians = distance / radius
     val angleInDegrees = Math.toDegrees(angleInRadians)
     return angleInDegrees
+}
+
+fun getPositionOnCircle(coordinate: QuickAppsViewModel.IconCoordinate): Offset {
+    return getPositionOnCircle(coordinate.distance, -coordinate.angle)
+}
+fun getPositionOnCircle(radius: Double, angleDegrees: Double): Offset {
+    if (radius <= 0.0) {
+        throw IllegalArgumentException("Radius must be a positive value")
+    }
+    val angleRadians = Math.toRadians(angleDegrees)
+    val x = radius * cos(angleRadians)
+    val y = radius * sin(angleRadians)
+
+    return Offset(x.toFloat(), y.toFloat())
 }

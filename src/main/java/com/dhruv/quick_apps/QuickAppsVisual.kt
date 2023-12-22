@@ -1,11 +1,20 @@
 package com.dhruv.quick_apps
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntOffsetAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideIn
+import androidx.compose.animation.slideOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -30,26 +39,28 @@ fun QuickAppsVisual(
     viewModel: QuickAppsViewModel,
     alphabetSideFloat: Float,
     labelSize: Float,
-    appComposable: @Composable (action: Action, offset: IntOffset, selected: Boolean) -> Unit,
-    wordsBGComposable: @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
-    iconsBGComposable: @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
-    triggerClosedBGComposable: @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
+    appComposable:                  @Composable (action: Action, offset: IntOffset, selected: Boolean) -> Unit,
+    triggerBGComposable:            @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
+    iconsBGComposable:              @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
+    allActions: List<Action>
 ){
     val offsetsChange by remember (viewModel.selectedString){
         mutableStateOf(viewModel.getIconsOffsetsChange)
     }
     val actions by remember (viewModel.selectedString){
-        mutableStateOf(viewModel.getActionsForAlphabet)
+        mutableStateOf(viewModel.currentActions)
     }
     val baseOffset by remember {
         mutableStateOf(IntOffset(-viewModel.sidePadding.toInt(), -(viewModel.rowHeight/3).toInt()))
     }
-    val selectedYOffset by animateFloatAsState(targetValue = viewModel.getSelectedStringYOffset, label = "selected-string-Y-offset")
+    val selectedYOffset by animateFloatAsState(targetValue = viewModel.getSelectedTriggerYOffset, label = "selected-string-Y-offset")
     val currentAlphabet = viewModel.selectedString
-    val alphabetOffsets = getAnimatedAlphabetOffset(viewModel.getAlphabetYOffsets,alphabetSideFloat,currentAlphabet, viewModel.getTriggerSize)
+    val alphabetOffsets = getAnimatedAlphabetOffset(viewModel.currentTriggerYOffsets,alphabetSideFloat,currentAlphabet, viewModel.getTriggerSize)
+    val selectionMode = viewModel.selectionMode
 
     @Composable
-    fun animatedAlphabet(s: String){
+    fun animatedAlphabet (s: String) {
+        if (alphabetOffsets[s] == null) return
         Box(
             modifier = Modifier
                 .offset { alphabetOffsets[s]!!.value }
@@ -59,14 +70,17 @@ fun QuickAppsVisual(
     }
 
     @Composable
-    fun allAlphabets(){
-        for ((i, _) in viewModel.getAlphabetYOffsets){
+    fun allAlphabets () {
+        for ((i, _) in viewModel.currentTriggerYOffsets){
             animatedAlphabet(s = i)
         }
     }
 
+    /**
+     * icons for all the selected group/character
+     */
     @Composable
-    fun selectedAlphabetApps(){
+    fun appIcons () {
         Box(
             modifier = Modifier
         ){
@@ -74,12 +88,12 @@ fun QuickAppsVisual(
                 val offsetChange = offsetsChange[i]
                 val action = actions[i]
                 val iconOffset = baseOffset + Offset(0f, selectedYOffset).round() + offsetChange.round()
-                val isSelected = viewModel.currentAction!=null && (actions[i].name == viewModel.currentAction!!.name)
+                val isSelected = viewModel.currentAction!=null && (actions[i] == viewModel.currentAction!!)
                 if(isSelected){
-                    viewModel.currentActionOfset = iconOffset.toOffset()
+                    viewModel.currentActionOffset = iconOffset.toOffset()
                 }
                 appComposable(
-                    action,
+                    allActions[action],
                     iconOffset,
                     isSelected,
                 )
@@ -87,62 +101,85 @@ fun QuickAppsVisual(
         }
     }
 
+
+
+
+
+
+
+    triggerBGComposable?.invoke(
+        viewModel.getTriggerOffset,
+        viewModel.getTriggerSize,
+        selectedYOffset.toInt()
+    )
+
     Box(
         modifier = modifier
             .offset { viewModel.getTriggerOffset }
             .size(viewModel.getTriggerSize.width.dp, viewModel.getTriggerSize.height.dp)
     ){
-        when (viewModel.selectionMode) {
-            SelectionMode.NonActive -> {
-//                Box (
-//                    modifier = Modifier
-//                        .offset { -viewModel.getTriggerOffset }
-//                ){
-//                    triggerClosedBGComposable?.invoke(
-//                        viewModel.getTriggerOffset,
-//                        viewModel.getTriggerSize,
-//                        selectedYOffset.toInt()
-//                    )
-//                }
-                allAlphabets()
-            }
-            SelectionMode.CharSelect -> {
-                Box (
-                    modifier = Modifier
+
+        // trigger mode selection
+        AnimatedVisibility(
+            visible = selectionMode == SelectionMode.NonActive,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            val del = viewModel.getTriggerSize.height/4
+            Icon(
+                modifier = Modifier.offset { IntOffset(20, del) },
+                imageVector = Icons.Default.Search,
+                contentDescription = "search icon"
+            )
+            Icon(
+                modifier = Modifier.offset { IntOffset(20, del*3) },
+                imageVector = Icons.Default.Star,
+                contentDescription = "search icon"
+            )
+        }
+
+        // trigger labels
+        AnimatedVisibility(
+            visible = selectionMode != SelectionMode.NonActive,
+            enter = slideIn { IntOffset(viewModel.getTriggerSize.width, 50) },
+            exit = slideOut { IntOffset(viewModel.getTriggerSize.width, 50) }
+        ) {
+            allAlphabets()
+            appIcons()
+        }
+
+        // app icons
+        AnimatedVisibility(
+            visible = selectionMode != SelectionMode.NonActive,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            animatedAlphabet(s = viewModel.selectedString)
+            Box (
+                modifier = Modifier
                     .offset { -viewModel.getTriggerOffset }
-                ){
-                    wordsBGComposable?.invoke(
-                        viewModel.getTriggerOffset,
-                        viewModel.getTriggerSize,
-                        selectedYOffset.toInt()
-                    )
-                }
-                allAlphabets()
-                selectedAlphabetApps()
+            ){
+                iconsBGComposable?.invoke(
+                    viewModel.getTriggerOffset,
+                    viewModel.getTriggerSize,
+                    selectedYOffset.toInt()
+                )
             }
-            SelectionMode.AppSelect -> {
-                animatedAlphabet(s = viewModel.selectedString)
-                Box (
-                    modifier = Modifier
-                        .offset { -viewModel.getTriggerOffset }
-                ){
-                    iconsBGComposable?.invoke(
-                        viewModel.getTriggerOffset,
-                        viewModel.getTriggerSize,
-                        selectedYOffset.toInt()
-                    )
-                }
-                allAlphabets()
-                selectedAlphabetApps()
-            }
+            allAlphabets()
+            appIcons()
         }
     }
 }
 
 @Composable
-fun getAnimatedAlphabetOffset(AlphabetYOffsets: Map<String, Float>, alphabetSideFloat: Float, currentAlphabet: String, triggerSize: IntSize): Map<String, State<IntOffset>> {
+fun getAnimatedAlphabetOffset(
+    alphabetYOffsets: Map<String, Float>,
+    alphabetSideFloat: Float,
+    currentAlphabet: String,
+    triggerSize: IntSize
+): Map<String, State<IntOffset>> {
     val alphabetOffsets = mutableMapOf<String, State<IntOffset>>()
-    for ((alphabet, yOff) in AlphabetYOffsets) {
+    for ((alphabet, yOff) in alphabetYOffsets) {
         alphabetOffsets[alphabet] = animateIntOffsetAsState(
             targetValue =
                 if (alphabet == currentAlphabet) IntOffset(-alphabetSideFloat.toInt()-15, yOff.toInt() - 25)
