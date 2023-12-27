@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -23,12 +22,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.round
 import androidx.compose.ui.unit.toOffset
@@ -42,6 +37,7 @@ fun QuickAppsVisual(
     appComposable:                  @Composable (action: Action, offset: IntOffset, selected: Boolean) -> Unit,
     triggerBGComposable:            @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
     iconsBGComposable:              @Composable() ((offset: IntOffset, size: IntSize, selectionHeight: Int) -> Unit)?,
+    groupLabelComposable:           @Composable() ((offset: IntOffset, size: Float, value: String) -> Unit),
     allActions: List<Action>
 ){
     val offsetsChange by remember (viewModel.selectedString){
@@ -61,12 +57,7 @@ fun QuickAppsVisual(
     @Composable
     fun animatedAlphabet (s: String) {
         if (alphabetOffsets[s] == null) return
-        Box(
-            modifier = Modifier
-                .offset { alphabetOffsets[s]!!.value }
-        ) {
-            Text(text = s, style = TextStyle(color = Color.White, fontSize = TextUnit(labelSize, TextUnitType.Sp)))
-        }
+        groupLabelComposable(alphabetOffsets[s]!!.value, 1f, s)
     }
 
     @Composable
