@@ -24,9 +24,7 @@ import kotlinx.coroutines.launch
 class QuickAppsViewModel(
     val onAlphabetSelectionChange:  (alphabet: String, haptic: HapticFeedback)->Unit,
     val onAppSelectionChange:       (action: Int?, haptic: HapticFeedback)->Unit,
-    val onActionSelect:             (Int)->Unit,
-    val firstCharToActionsMap:      Map<String, List<Int>>,
-    val groupNameToActionsMap:      Map<String, List<Int>>,
+
     var rowHeight:                  Double,
     var distanceBetweenIcons:       Double,
     val sidePadding:                Float,
@@ -34,6 +32,10 @@ class QuickAppsViewModel(
     val leftMinValue:               Float = -880F,
     val startingRowHeight:          Double = 180.0,
 ): ViewModel() {
+
+    var onActionSelect: (Int)->Unit = {}
+    var firstCharToActionsMap       = mapOf<String, List<Int>>()
+    var groupNameToActionsMap       = mapOf<String, List<Int>>()
 
             var selectedString      by mutableStateOf("")
     private var touchPosition       by mutableStateOf(Offset.Zero)
