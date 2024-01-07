@@ -89,7 +89,7 @@ class QuickAppsViewModel(
             if (actionsMap.isEmpty()) return ""
             val delta = triggerSize.height / actionsMap.size
             val index = (position / delta).toInt()
-            val currIndex = clamp(index, 0, firstAlphabetToActionsOffsets.size-1)
+            val currIndex = clamp(index, 0, actionsMap.size-1)
             val curr = actionsMap.keys.toList()[currIndex]
             if (curr != selectedString){
                 onAlphabetSelectionChange(curr, haptic)
@@ -106,7 +106,7 @@ class QuickAppsViewModel(
             currentRow = clamp((currentDistance/rowHeight).toInt(), 0, Int.MAX_VALUE)
             val deltaAngle = calculateAngleOnCircle(currentRow * rowHeight + startingRowHeight, distanceBetweenIcons)
             currentColumn = (currentAngle/deltaAngle).toInt()
-            var nextAction: Int? = null
+            var nextAction: Int?
             if(currentRowColumnToIndexMap[selectedString] == null) nextAction = null
             else if (currentRowColumnToIndexMap[selectedString]!![currentRow] == null) nextAction = null
             else if (currentRowColumnToIndexMap[selectedString]!![currentRow]!![currentColumn] == null) nextAction = null
@@ -125,7 +125,8 @@ class QuickAppsViewModel(
                 if(touchPosition.x < toAppSelectX && change.y > change.x){
                     selectionMode = SelectionMode.AppGestureSelect
                 }
-                selectedString = getCurrentAlphabet(touchPosition.y, currentActionsMap)
+                if (currentActionsMap.isNotEmpty())
+                    selectedString = getCurrentAlphabet(touchPosition.y, currentActionsMap)
             }
             SelectionMode.AppGestureSelect -> {
 
@@ -163,8 +164,10 @@ class QuickAppsViewModel(
 
     // endregion
 
-    suspend fun handleIconsPositioningCalculations(topMinValue: Float = -50F, leftMinValue: Float = -880F){
-        if(!dirty) return
+    fun handleIconsPositioningCalculations(topMinValue: Float = -50F, leftMinValue: Float = -880F){
+        if(!dirty) {
+            return
+        }
 
         // region internal functions definition
         fun generateAlphabetYOffsets(actionsMap: Map<String, List<Int>>): Map<String, Float> {
@@ -209,6 +212,7 @@ class QuickAppsViewModel(
             }
             allIconCoordinates = iconCoordinates.toList()
             indexToRowAndColumn = indexToCoordinates.toList()
+            println("coordinates generated")
         }
 
         /**
@@ -229,6 +233,7 @@ class QuickAppsViewModel(
                 }
             }
             allGroupedActions = actionsL.toList()
+            println("actions generated")
         }
 
         /**
@@ -293,8 +298,8 @@ class QuickAppsViewModel(
             for ((s, icons) in actionsMap){
                 val l = mutableListOf<Offset>()
                 for (p in icons){
-                    val cpos = getPositionOnCircle(allIconCoordinates[p])
-                    val finalPos = -cpos
+                    val cPos = getPositionOnCircle(allIconCoordinates[p])
+                    val finalPos = -cPos
                     l.add( finalPos )
                 }
                 list[s] = l.toList()
@@ -343,6 +348,7 @@ class QuickAppsViewModel(
 
         firstAlphabetToActionsOffsets = generateActionOffsets(firstAlphabetToActionsIndexes)
         groupNameToActionsOffsets = generateActionOffsets(groupNameToActionsIndexes)
+        println("offsets generated")
         dirty = false
     }
 

@@ -40,9 +40,7 @@ fun QuickAppsVisual(
     groupLabelComposable:           @Composable() ((offset: IntOffset, size: Float, value: String) -> Unit),
     allActions: List<Action>
 ){
-    val offsetsChange by remember (viewModel.selectedString){
-        mutableStateOf(viewModel.getIconsOffsetsChange)
-    }
+    val offsetsChange = viewModel.getIconsOffsetsChange
     val actions by remember (viewModel.selectedString){
         mutableStateOf(viewModel.currentActions)
     }
